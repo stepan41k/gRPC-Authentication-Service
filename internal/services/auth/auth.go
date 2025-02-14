@@ -23,11 +23,7 @@ type Auth struct {
 }
 
 type UserSaver interface {
-	SaveUser(
-		ctx context.Context,
-		email string,
-		passHash []byte,
-	) (uid int64, err error)
+	SaveUser(ctx context.Context, email string, passHash []byte) (int64, error)
 }
 
 type UserProvider interface {
@@ -156,11 +152,6 @@ func (a *Auth) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 
 	isAdmin, err := a.usrProvider.IsAdmin(ctx, userID)
 	if err != nil {
-		if errors.Is(err, storage.ErrAppNotFound) {
-			log.Warn("user not found", sl.Err(err))
-
-			return false, fmt.Errorf("%s: %w", op, ErrInvalidAppID)
-		}
 		return false, fmt.Errorf("%s: %w", op, err)
 	}
 

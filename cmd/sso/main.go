@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -24,17 +25,16 @@ func main() {
 
 	log.Info("starting application", slog.Any("config", cfg))
 
+	storage := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s", cfg.Storage.Host, cfg.Storage.Port, cfg.Storage.Username, cfg.Storage.DBName, os.Getenv("DB_PASSWORD"), cfg.Storage.SSLMode)
 
-	application := app.New(log, cfg.GRPC.Port, cfg.StoragePath, cfg.TokenTTL)
+	application := app.New(log, cfg.GRPC.Port, storage, cfg.TokenTTL)
 
-	go application.GRPCSrv.MustRun()
 
-	// TODO: инициализировать логгер
-
-	// TODO: инициализировать приложение (app)
-
-	// TODO: запустит gRPC-сервер приложения
-
+	go func() {
+		application.GRPCServer.MustRun()
+	}()
+	
+	//Graceful shutdown
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
 
@@ -42,7 +42,7 @@ func main() {
 
 	log.Info("stopping application", slog.String("signal", signal.String()))
 
-	application.GRPCSrv.Stop()
+	application.GRPCServer.Stop()
 
 	log.Info("application stopped")
 }

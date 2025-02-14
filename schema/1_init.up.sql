@@ -1,0 +1,19 @@
+CREATE TABLE users
+(
+    id SERIAL NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    pass_hash BYTEA NOT NULL
+);
+
+CREATE TABLE apps
+(
+    id SERIAL NOT NULL UNIQUE,
+    name TEXT NOT NULL UNIQUE,
+    secret TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE admins
+(
+    id SERIAL NOT NULL UNIQUE,
+    user_id INT REFERENCES users (id) ON DELETE CASCADE NOT NULL
+);

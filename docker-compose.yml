@@ -1,0 +1,22 @@
+version: "3.0"
+
+services:
+  grpc-app:
+    build: ./
+    command: ./wait-for-postgres.sh grpcdb ./grpc-app
+    ports:
+    - 44044:44044
+    depends_on:
+    - grpcdb
+    environment:
+    - DB_PASSWORD=qwerty
+  grpcdb:
+    restart: always
+    image: postgres:latest
+    volumes:
+    - ./database/postgres/data:/var/lib/postgresql/data
+    environment:
+    - POSTGRES_PASSWORD=qwerty
+    ports:
+    - 5437:5432
+  
