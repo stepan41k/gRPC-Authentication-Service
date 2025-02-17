@@ -2,11 +2,11 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/stepan41k/gRPC/internal/domain/models"
@@ -55,8 +55,9 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 		`, email, passHash).Scan(&id)
 
 		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				return 0, nil
+			pgErr := err.(*pgconn.PgError)
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				return 0, fmt.Errorf("%s: %w", op, storage.ErrUserExists)
 			}
 
 			return 0, fmt.Errorf("%s: %w", op, err)
@@ -94,7 +95,7 @@ func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
 	var user models.User
 	err = row.Scan(&user.ID, &user.Email, &user.PassHash)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return models.User{}, fmt.Errorf("%s: %w", op, storage.ErrUserNotFound)
 		}
 
@@ -112,7 +113,7 @@ func (s *Storage) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 		return false, fmt.Errorf("%s: %w",op, err)
 	}
 
-	defer func()  {
+	defer func() {
 		if err != nil {
 			_ = tx.Rollback(ctx)
 			return
@@ -124,20 +125,19 @@ func (s *Storage) IsAdmin(ctx context.Context, userID int64) (bool, error) {
 		}
 	}()
 
-	var isAdmin int64
 	row := tx.QueryRow(ctx, `
 		SELECT admins.id
 		FROM admins
 		WHERE admins.user_id = $1;
 	`, userID)
 
+	var isAdmin int64
 	err = row.Scan(&isAdmin)
-	// if isAdmin == 0 {
-	// 	return false, nil
-	// }
+	
+
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return false, fmt.Errorf("%s: %w", op, err)
+			return false, nil
 		}
 
 		return false, fmt.Errorf("%s: %w",op ,err)
@@ -175,7 +175,7 @@ func (s *Storage) App(ctx context.Context, appID int) (models.App, error) {
 
 	err = row.Scan(&app.ID, &app.Name, &app.Secret)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return models.App{}, fmt.Errorf("%s: %w", op, storage.ErrAppNotFound)
 		}
 

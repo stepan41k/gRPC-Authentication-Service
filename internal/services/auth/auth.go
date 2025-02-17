@@ -39,6 +39,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrInvalidAppID       = errors.New("invalid app id")
 	ErrUserExists         = errors.New("user already exists")
+	ErrUserNotFound       = errors.New("user not found")
 )
 
 // New returns a new instance of the Auth service.
@@ -128,7 +129,7 @@ func (a *Auth) RegisterNewUser(ctx context.Context, email string, pass string) (
 
 			return 0, fmt.Errorf("%s: %w", op, ErrUserExists)
 		}
-		
+
 		log.Error("failed to save user", sl.Err(err))
 
 		return 0, fmt.Errorf("%s: %w", op, err)

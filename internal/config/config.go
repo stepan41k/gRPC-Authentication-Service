@@ -51,3 +51,22 @@ func MustLoad() *Config {
 
 	return &cfg
 }
+
+func MustLoad_Test(configPath string) *Config {
+	if configPath == "" {
+		log.Fatal("config path is empty")
+	}
+
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		log.Fatalf("config file does not exist: %s", configPath)
+	}
+
+	var cfg Config
+
+	if err := cleanenv.ReadConfig(configPath, &cfg); err != nil {
+		log.Fatalf("failed to read config: %s", err.Error())
+	}
+
+	return &cfg
+
+}
